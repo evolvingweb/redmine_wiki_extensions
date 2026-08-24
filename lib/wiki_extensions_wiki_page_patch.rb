@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-require_dependency 'wiki_page'
+# R7: WikiPage is Zeitwerk-autoloaded - no require_dependency (refs #108530)
 
 class WikiPage
   has_many :wiki_extensions_tag_relations, :dependent => :destroy

@@ -15,7 +15,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-require_dependency "redmine/wiki_formatting/textile/helper"
+# R7: plain require — require_dependency no longer force-loads core lib/. refs #108530
+require "redmine/wiki_formatting/textile/helper"
 
 module WikiExtensionsHelperPatch
   def heads_for_wiki_formatter

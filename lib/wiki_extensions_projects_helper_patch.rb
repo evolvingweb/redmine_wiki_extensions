@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-require_dependency 'projects_helper'
+# R7: ProjectsHelper is Zeitwerk-autoloaded - no require_dependency (refs #108530)
 
 module WikiExtensionsProjectsHelperPatch
 

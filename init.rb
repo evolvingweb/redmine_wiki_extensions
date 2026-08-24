@@ -19,20 +19,44 @@ begin
   require 'config/initializers/session_store.rb'
 rescue LoadError
 end
+# R7 still ships the Textile formatter/helper/RedCloth3 for legacy content, so the
+# Textile-related patches below remain valid even though our content is CommonMark.
 require 'redmine/wiki_formatting/textile/redcloth3'
 
-$LOAD_PATH.unshift "#{File.dirname(__FILE__)}/lib"
+# --- Redmine 7 loading (refs #108530) -------------------------------------------
+# Was: $LOAD_PATH.unshift + Dir.foreach bulk-`require` of lib/*.rb + a nested
+# `to_prepare` + ActionView::Base.class_eval. All replaced:
+#
+# * 26 of the 28 lib/*.rb follow Zeitwerk naming (wiki_extensions_foo.rb ->
+#   WikiExtensionsFoo), so Zeitwerk eager-loads them — no bulk require.
+# * TWO files reopen CORE classes (`class WikiController` / `class WikiPage`) as well
+#   as defining their patch module, which Zeitwerk cannot own (the file name doesn't
+#   match the constant). Those are explicitly ignored + required here.
+# * The nested `to_prepare` never fires under R7 (init.rb already runs inside one),
+#   so ProjectsHelperPatch is applied directly.
+# * ActionView::Base.class_eval -> ActiveSupport.on_load(:action_view) (Rails 8.1
+#   safe; avoids touching the class before it's ready).
+plugin_lib = File.join(File.dirname(__FILE__), 'lib')
+# Files Zeitwerk cannot own, so we ignore + require them explicitly:
+#  * the two *_patch files reopen CORE classes (class WikiController / class WikiPage)
+#    instead of defining the constant their filename implies;
+#  * wiki_extensions_helper.rb defines a SECOND, nested constant
+#    (ActionView::Helpers::WikiExtensionsHelper) besides the top-level one — Zeitwerk
+#    only ever defines the expected one, so the nested module would never exist.
+core_reopening_files = %w[
+  wiki_extensions_wiki_controller_patch
+  wiki_extensions_wiki_page_patch
+  wiki_extensions_helper
+].freeze
 
-Rails.configuration.to_prepare do
-  WikiExtensionsProjectsHelperPatch.apply
+Rails.autoloaders.each do |loader|
+  core_reopening_files.each { |f| loader.ignore(File.join(plugin_lib, "#{f}.rb")) }
 end
+core_reopening_files.each { |f| require File.join(plugin_lib, f) }
 
-require_dependency 'wiki_extensions_notifiable_patch'
-Dir::foreach(File.join(File.dirname(__FILE__), 'lib')) do |file|
-  next unless /\.rb$/ =~ file
-  require file
-end
-ActionView::Base.class_eval do
+WikiExtensionsProjectsHelperPatch.apply if WikiExtensionsProjectsHelperPatch.respond_to?(:apply)
+
+ActiveSupport.on_load(:action_view) do
   include ActionView::Helpers::WikiExtensionsHelper
 end
 
@@ -42,8 +66,8 @@ Redmine::Plugin.register :redmine_wiki_extensions do
   author_url 'http://twitter.com/haru_iida'
   description 'This is a Wiki Extensions plugin for Redmine'
   url 'http://www.r-labs.org/projects/r-labs/wiki/Wiki_Extensions_en'
-  version '6.0.0'
-  requires_redmine :version_or_higher => '6.0.0'
+  version '7.0.0'
+  requires_redmine :version_or_higher => '7.0.0'
 
   project_module :wiki_extensions do
     permission :wiki_extensions_vote, { :wiki_extensions => [:vote, :show_vote] }, :public => true

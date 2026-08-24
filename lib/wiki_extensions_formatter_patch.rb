@@ -15,10 +15,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-require_dependency "redmine/wiki_formatting/textile/formatter"
+# R7 (refs #108530): two changes here.
+#  1. `require_dependency` no longer force-loads core lib/ files -> plain `require`.
+#  2. Redmine 7 SPLIT the Textile formatter: `Formatter` now delegates to a new
+#     `Filter < RedCloth3` class, and the inline/block rule list `RULES` moved from
+#     `Formatter` to `Filter` (Formatter#to_html just runs the filter, then Loofah
+#     scrubbers). So the emoticon rule must be registered on, and prepended to,
+#     `Textile::Filter` — targeting `Formatter` raises NameError on RULES.
+require "redmine/wiki_formatting/textile/formatter"
 
 module WikiExtensionsFormatterPatch
-  Redmine::WikiFormatting::Textile::Formatter::RULES << :inline_smiles
+  Redmine::WikiFormatting::Textile::Filter::RULES << :inline_smiles
 
   private
 
@@ -42,4 +49,4 @@ module WikiExtensionsFormatterPatch
   end
 end
 
-Redmine::WikiFormatting::Textile::Formatter.prepend(WikiExtensionsFormatterPatch)
+Redmine::WikiFormatting::Textile::Filter.prepend(WikiExtensionsFormatterPatch)

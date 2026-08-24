@@ -15,7 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-require_dependency 'wiki_controller'
+# R7: WikiController is Zeitwerk-autoloaded - no require_dependency (refs #108530)
 
 class WikiController
   after_action :wiki_extensions_save_tags, :only => [:edit, :update]
